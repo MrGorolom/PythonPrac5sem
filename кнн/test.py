@@ -1,15 +1,9 @@
-import numpy as np
+import requests
 
-# Исходный массив
-arr = np.array([[1, 2, 3], [4, 5, 6]])
+proxies = {
+    'http': 'http://your-proxy-address:port',
+    'https': 'https://your-proxy-address:port'
+}
 
-# Новый столбец
-new_column = np.array([10, 11])
-
-# Позиция для вставки (например, после второго столбца)
-position = 2
-
-# Вставка столбца
-result = np.insert(arr, position, values=new_column, axis=1)
-
-print(result)
+response = requests.get('https://chat.openai.com/chat', proxies=proxies)
+print(response.text)
