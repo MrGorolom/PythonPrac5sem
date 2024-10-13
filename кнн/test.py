@@ -1,9 +1,6 @@
-import requests
+import numpy as np
+np.random.seed(54)
+train_data = np.random.randint(0, 30, size=(10, 4))
+train_target = np.random.randint(1, 4, size=(1, 10))
 
-proxies = {
-    'http': 'http://your-proxy-address:port',
-    'https': 'https://your-proxy-address:port'
-}
-
-response = requests.get('https://chat.openai.com/chat', proxies=proxies)
-print(response.text)
+print(np.sum(train_data, axis=0))
