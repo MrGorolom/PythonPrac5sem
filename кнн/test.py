@@ -1,15 +1,15 @@
 import numpy as np
-
-# Исходный массив
-arr = np.array([[1, 2, 3], [4, 5, 6]])
-
-# Новый столбец
-new_column = np.array([10, 11])
-
-# Позиция для вставки (например, после второго столбца)
-position = 2
-
-# Вставка столбца
-result = np.insert(arr, position, values=new_column, axis=1)
-
-print(result)
+np.random.seed(54)
+train_data = np.random.randint(0, 30, size=(10, 4))
+train_target = np.random.randint(1, 4, size=(10,))
+k = 3
+print(train_data)
+print(train_target)
+KNN_index = np.array([[1, 9, 3],
+                      [3,4,6],
+                      [6, 2,1],
+                      [5,3,1]])
+print( np.tile(train_target, 4).reshape(4, -1))
+KNN_classes = np.take_along_axis(
+                    np.tile(train_target, 4).reshape(4, -1), KNN_index, axis=1)
+print(KNN_classes)
