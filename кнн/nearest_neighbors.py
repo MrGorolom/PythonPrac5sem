@@ -87,19 +87,3 @@ class KNNClassifier:
             max_class_indices = np.argmax(class_weight_sums, axis=1)
             prediction = vals[max_class_indices]
             return prediction
-
-
-
-
-M = KNNClassifier(k=5, strategy='ball_tree', metric='euclidean')
-
-np.random.seed(54)
-train_data = np.random.randint(0, 30, size=(10, 4))
-train_target = np.random.randint(1, 4, size=(10,))
-
-
-
-test_data = np.random.randint(0, 10, size=(13, 4))
-
-M.fit(train_data, train_target)
-print(M.predict(test_data))
