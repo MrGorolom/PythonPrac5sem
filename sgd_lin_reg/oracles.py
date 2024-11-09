@@ -1,3 +1,8 @@
+import numpy as np
+from scipy.special import expit
+from sgd_lin_reg.utils import grad_finite_diff
+
+
 class BaseSmoothOracle:
     """
     Базовый класс для реализации оракулов.
@@ -40,8 +45,8 @@ class BinaryLogistic(BaseSmoothOracle):
 
         w - одномерный numpy array
         """
-        
-        return super().func(w)
+        return (np.mean(np.logaddexp(0, -y * (X @ w)))
+                + (self.l2_coef / 2) * (w @ w.T))
 
     def grad(self, X, y, w):
         """
@@ -53,4 +58,15 @@ class BinaryLogistic(BaseSmoothOracle):
 
         w - одномерный numpy array
         """
-        return super().grad(w)
+        return (X.T*y * (expit(y * (X @ w)) - 1)).mean(axis=1) + self.l2_coef * w
+
+my_oracle = BinaryLogistic(l2_coef=1)
+print(my_oracle.func(np.zeros((3, 3)), np.ones(3), np.zeros(3)))
+'''X = np.array([[1, 2, 3], [1, 1, 1], [2, 3, 4]])
+y = np.array([1, 1, 2])
+w = np.array([1, 0, 1])
+Log = BinaryLogistic(0.1)
+print(Log.grad(X, y, w))
+def part(w, x=X, y=y):
+    return Log.func(x, y, w)
+print(grad_finite_diff(part, w))'''

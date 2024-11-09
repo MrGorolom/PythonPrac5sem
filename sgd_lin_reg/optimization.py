@@ -1,3 +1,11 @@
+from time import struct_time
+
+import oracles
+import time
+import numpy as np
+from scipy.special import expit
+
+
 class GDClassifier:
     """
     Реализация метода градиентного спуска для произвольного
@@ -25,6 +33,15 @@ class GDClassifier:
 
         **kwargs - аргументы, необходимые для инициализации
         """
+        if loss_function == 'binary_logistic':
+            self.loss_function = oracles.BinaryLogistic(**kwargs)
+        else:
+            pass
+        self.alpha = step_alpha
+        self.beta = step_beta
+        self.tolerance = tolerance
+        self.max_iter = max_iter
+        self.w = None
 
     def fit(self, X, y, w_0=None, trace=False):
         """
@@ -45,6 +62,44 @@ class GDClassifier:
         history['func']: list of floats, содержит значения функции на каждой итерации
         (0 для самой первой точки)
         """
+        if w_0 is None:
+            w_0 == np.zeros_like(y)
+        if trace:
+            history = dict()
+            history['time'] = list()
+            history['func'] = list()
+            history['time'].append(0)
+            prev_Q = self.loss_function.func(X, y, w_0)
+            history['func'].append(prev_Q)
+            prev_Q = 0
+            for k in range(self.max_iter):
+                start_time = time.time()
+                dQ = self.loss_function.grad(X, y, w_0)
+                eta = self.alpha / k ** self.beta
+                w_0 = w_0 - eta * dQ
+                Q = self.loss_function.func(X, y, w_0)
+                end_time = time.time()
+                history['time'].append(end_time - start_time)
+                history['func'].append(float(Q))
+                if abs(prev_Q - Q) < self.tolerance:
+                    break
+                else:
+                    prev_Q = Q
+            return history
+        else:
+            prev_Q = self.loss_function.func(X, y, w_0)
+            prev_Q = 0
+            for k in range(self.max_iter):
+                dQ = self.loss_function.grad(X, y, w_0)
+                eta = self.alpha / k ** self.beta
+                w_0 = w_0 - eta * dQ
+                Q = self.loss_function.func(X, y, w_0)
+                if abs(prev_Q - Q) < self.tolerance:
+                    break
+                else:
+                    prev_Q = Q
+        self.w = w_0
+        return
 
     def predict(self, X):
         """
@@ -54,6 +109,7 @@ class GDClassifier:
 
         return: одномерный numpy array с предсказаниями
         """
+        return np.sign(X @ self.w)
 
     def predict_proba(self, X):
         """
@@ -64,6 +120,7 @@ class GDClassifier:
         return: двумерной numpy array, [i, k] значение соответветствует вероятности
         принадлежности i-го объекта к классу k
         """
+        return expit(X @ self.w)
 
     def get_objective(self, X, y):
         """
@@ -74,6 +131,7 @@ class GDClassifier:
 
         return: float
         """
+        return self.loss_function.func(X, y, self.w)
 
     def get_gradient(self, X, y):
         """
@@ -84,11 +142,13 @@ class GDClassifier:
 
         return: numpy array, размерность зависит от задачи
         """
+        return self.loss_function.grad(X, y, self.w)
 
     def get_weights(self):
         """
         Получение значения весов функционала
         """
+        return self.w
 
 
 class SGDClassifier(GDClassifier):
@@ -123,6 +183,17 @@ class SGDClassifier(GDClassifier):
 
         **kwargs - аргументы, необходимые для инициализации
         """
+        if loss_function == 'binary_logistic':
+            self.loss_function = oracles.BinaryLogistic(**kwargs)
+        else:
+            pass
+        self.alpha = step_alpha
+        self.beta = step_beta
+        self.tolerance = tolerance
+        self.max_iter = max_iter
+        self.w = None
+        self.batch_size = batch_size
+        np.random.seed(random_seed)
 
     def fit(self, X, y, w_0=None, trace=False, log_freq=1):
         """
@@ -151,3 +222,65 @@ class SGDClassifier(GDClassifier):
         history['weights_diff']: list of floats, содержит квадрат нормы разности векторов весов с соседних замеров
         (0 для самой первой точки)
         """
+        if w_0 is None:
+            w_0 == np.zeros_like(y)
+        if trace:
+            history = dict()
+            history['time'] = list()
+            history['func'] = list()
+            history['time'].append(0)
+            prev_Q = self.loss_function.func(X, y, w_0)
+            history['func'].append(prev_Q)
+            prev_Q = 0
+
+            start_time = time.time()
+            curr_count_x = 0
+            for k in range(self.max_iter):
+
+                np.random.shuffle(X)
+                for i in range(0, X.shape[0], self.batch_size):
+                    X_batch = X[i : i+self.batch_size]
+                    y_batch = y[i : i+self.batch_size]
+                    dQ = self.loss_function.grad(X_batch, y_batch, w_0)
+                    eta = self.alpha / k ** self.beta
+                    w_0 = w_0 - eta * dQ
+                    Q = self.loss_function.func(X_batch, y_batch, w_0)
+                    curr_count_x += y_batch.shape[0]
+                    if curr_count_x / X.shape[0] > log_freq:
+                        end_time = time.time()
+                        history['time'].append(end_time - start_time)
+                        history['func'].append(float(Q))
+                        struct_time = time.time()
+                    if abs(prev_Q - Q) < self.tolerance:
+                        break
+                    else:
+                        prev_Q = Q
+            return history
+        else:
+            prev_Q = 0
+            for k in range(self.max_iter):
+                np.random.shuffle(X)
+                for i in range(0, X.shape[0], self.batch_size):
+                    dQ = self.loss_function.grad(X, y, w_0)
+                    eta = self.alpha / k ** self.beta
+                    w_0 = w_0 - eta * dQ
+                    Q = self.loss_function.func(X, y, w_0)
+                    if abs(prev_Q - Q) < self.tolerance:
+                        break
+                    else:
+                        prev_Q = Q
+                if abs(prev_Q - Q) < self.tolerance:
+                        break
+        self.w = w_0
+        return
+
+
+
+model = GDClassifier(loss_function='binary_logistic', step_alpha=1,
+    step_beta=0, tolerance=1e-4, max_iter=5, l2_coef=0.1)
+l, d = 1000, 10
+X = np.random.random((l, d))
+y = np.random.randint(0, 2, l) * 2 - 1
+w = np.random.random(d)
+history = model.fit(X, y, w_0=np.zeros(d), trace=True)
+print(' '.join([str(x) for x in history['func']]))

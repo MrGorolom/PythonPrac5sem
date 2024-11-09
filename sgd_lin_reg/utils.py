@@ -1,22 +1,11 @@
 import numpy as np
 
 
-def gradient(f, x, eps):
-    def partial_derivative(xi, i):
-        nonlocal x
-        nonlocal f
-        nonlocal eps
-        grad_i = -f(x)
-        x[i] += eps
-        grad_i += f(x)
-        x[i] -= eps
-        return grad_i / eps
+def grad_finite_diff(function, w, eps=1e-8):
+    f = np.full_like(w, function(w), dtype = float)
+    eps_matrix_e = np.eye(w.shape[0]) * eps
+    W_matrix_merg = np.tile(w, w.shape[0]).reshape(w.shape[0], -1) + np.eye(w.shape[0]) * eps
+    f_merg = np.apply_along_axis(lambda w: function(w), axis=1, arr=W_matrix_merg)
+    return (f_merg - f) / eps
 
-    deriv = np.vectorize(partial_derivative)
-    return deriv(x, np.array(range(x.shape[0])))
 
-def f(x):
-    return x@x.T
-
-x = np.array([1, 1, 1])
-print(gradient(f, x, 0.0001))
