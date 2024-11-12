@@ -60,8 +60,7 @@ class BinaryLogistic(BaseSmoothOracle):
         """
         return (X.T*y * (expit(y * (X @ w)) - 1)).mean(axis=1) + self.l2_coef * w
 
-my_oracle = BinaryLogistic(l2_coef=1)
-print(my_oracle.func(np.zeros((3, 3)), np.ones(3), np.zeros(3)))
+
 '''X = np.array([[1, 2, 3], [1, 1, 1], [2, 3, 4]])
 y = np.array([1, 1, 2])
 w = np.array([1, 0, 1])

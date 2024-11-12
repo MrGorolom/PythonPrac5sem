@@ -1,5 +1,3 @@
-from time import struct_time
-
 import oracles
 import time
 import numpy as np
@@ -228,15 +226,18 @@ class SGDClassifier(GDClassifier):
             history = dict()
             history['time'] = list()
             history['func'] = list()
+            history['epoch_num'] = list()
+            history['weights_diff'] = list()
+            history['weights_diff'].append(0)
             history['time'].append(0)
             prev_Q = self.loss_function.func(X, y, w_0)
             history['func'].append(prev_Q)
             prev_Q = 0
-
+            prev_w = w_0.copy()
             start_time = time.time()
             curr_count_x = 0
+            epoch_num = 0
             for k in range(self.max_iter):
-
                 np.random.shuffle(X)
                 for i in range(0, X.shape[0], self.batch_size):
                     X_batch = X[i : i+self.batch_size]
@@ -247,10 +248,15 @@ class SGDClassifier(GDClassifier):
                     Q = self.loss_function.func(X_batch, y_batch, w_0)
                     curr_count_x += y_batch.shape[0]
                     if curr_count_x / X.shape[0] > log_freq:
+                        epoch_num += curr_count_x / X.shape[0]
                         end_time = time.time()
+                        history['epoch_num'].append(epoch_num)
                         history['time'].append(end_time - start_time)
                         history['func'].append(float(Q))
+                        history['weights_diff'].append(np.sqrt((prev_w - w_0) @ (prev_w - w_0)))
+                        prev_w = w_0.copy()
                         struct_time = time.time()
+                        curr_count_x = 0
                     if abs(prev_Q - Q) < self.tolerance:
                         break
                     else:
@@ -261,10 +267,12 @@ class SGDClassifier(GDClassifier):
             for k in range(self.max_iter):
                 np.random.shuffle(X)
                 for i in range(0, X.shape[0], self.batch_size):
-                    dQ = self.loss_function.grad(X, y, w_0)
+                    X_batch = X[i: i + self.batch_size]
+                    y_batch = y[i: i + self.batch_size]
+                    dQ = self.loss_function.grad(X_batch, y_batch, w_0)
                     eta = self.alpha / k ** self.beta
                     w_0 = w_0 - eta * dQ
-                    Q = self.loss_function.func(X, y, w_0)
+                    Q = self.loss_function.func(X_batch, y_batch, w_0)
                     if abs(prev_Q - Q) < self.tolerance:
                         break
                     else:
@@ -276,11 +284,11 @@ class SGDClassifier(GDClassifier):
 
 
 
-model = GDClassifier(loss_function='binary_logistic', step_alpha=1,
-    step_beta=0, tolerance=1e-4, max_iter=5, l2_coef=0.1)
+model = SGDClassifier(loss_function='binary_logistic', step_alpha=1,
+    step_beta=0, tolerance=1e-1, max_iter=1000, l2_coef=0.1, batch_size=3)
 l, d = 1000, 10
 X = np.random.random((l, d))
 y = np.random.randint(0, 2, l) * 2 - 1
 w = np.random.random(d)
-history = model.fit(X, y, w_0=np.zeros(d), trace=True)
-print(' '.join([str(x) for x in history['func']]))
+history = model.fit(X, y, w_0=np.zeros(d), trace=False)
+print(model.predict_proba(X[-12]))
